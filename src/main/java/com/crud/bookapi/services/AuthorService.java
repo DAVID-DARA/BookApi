@@ -1,5 +1,6 @@
 package com.crud.bookapi.services;
 
+import com.crud.bookapi.dtos.AuthorDto;
 import com.crud.bookapi.entities.Author;
 import com.crud.bookapi.models.RequestDTO;
 import com.crud.bookapi.repositories.AuthorRepository;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -15,21 +17,32 @@ public class AuthorService {
 
     private final AuthorRepository authorRepository;
 
-    public String createAuthor(RequestDTO<Author> request) {
-        Author existingAuthor = authorRepository.findById(request.getData().getId())
+   public Author addAuthor(AuthorDto dto) {
+       Author author = Author.builder()
+               .firstName(dto.getFirstName())
+               .lastName(dto.getLastName())
+               .build();
+
+       return authorRepository.save(author);
+   }
+
+   public Author updateAuthor(Long id, AuthorDto dto) {
+       Author author = authorRepository.findById(id)
+               .orElseThrow(EntityNotFoundException::new);
+
+       author.setFirstName(dto.getFirstName());
+       author.setLastName(dto.getLastName());
+       return authorRepository.save(author);
+   }
+
+   public List<Author> listAuthors () {
+       return authorRepository.findAll();
+   }
+
+    public void deleteAuthor(Long id) {
+        Author author = authorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Author not found"));
-
-        if (Objects.nonNull(existingAuthor)) {
-            return "Author already exists";
-        }
-
-        Author newAuthor= Author.builder()
-                .firstName(request.getData().getFirstName())
-                .lastName(request.getData().getLastName())
-                .build();
-
-        authorRepository.save(newAuthor);
-
-        return "Author Created";
+        author.getBooks().forEach(b -> b.getAuthors().remove(author));
+        authorRepository.delete(author);
     }
 }
